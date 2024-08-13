@@ -221,6 +221,24 @@ function energy(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    return E
 end
 
+function per_atom_energies(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
+   PAEs = zeros(fltype(shipB), length(at), length(shipB))
+   B = alloc_B(shipB)
+   nlist = neighbourlist(at, cutoff(shipB); storelist=false)
+   maxnR = maxneigs(nlist)
+   tmp = alloc_temp(shipB, maxnR)
+   tmpRZ = (R = zeros(JVec{T}, maxnR), Z = zeros(AtomicNumber, maxnR))
+   for i = 1:length(at)
+      j, R, Z = neigsz!(tmpRZ, nlist, at, i)
+      fill!(B, 0)
+      evaluate!(B, tmp, shipB, R, Z, at.Z[i])
+      PAEs[i, :] = B
+   end
+   return [PAEs[:, iB] for iB = 1:length(shipB)]
+end
+
+
+
 
 function forces(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    # precompute the neighbourlist to count the number of neighbours
